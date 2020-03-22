@@ -73,7 +73,7 @@ func init() {
 }
 
 func main() {
-	temps, err = template.ParseGlob("main.html")
+	temps, err = template.ParseGlob("index.html")
 	if err != nil {
 		log.Fatal(err)
 	}
