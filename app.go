@@ -6,19 +6,23 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"regexp"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 var database *sql.DB
-var temps *template.Template
+var tmpl *template.Template
 var err error
 var dbid int
 var dbdate string
 var dbentry string
 var rows *sql.Rows
 var username string = "journal"
-var JEntries = []JEntry{}
+var JEntries []JEntry
+var journalDate string
+var journalEntry string
 
 type JEntry struct {
 	Date  string `json:"date"`
@@ -73,12 +77,19 @@ func init() {
 }
 
 func main() {
-	temps, err = template.ParseGlob("index.html")
+	tmpl, err = template.ParseFiles("index.html")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		err = r.ParseForm()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		JEntries = []JEntry{}
+
 		rows, err = database.Query("SELECT * FROM journal_entries ORDER BY date DESC")
 		if err != nil {
 			log.Fatal(err)
@@ -88,9 +99,69 @@ func main() {
 			JEntries = append(JEntries, JEntry{Date: dbdate, Entry: dbentry})
 		}
 
-		err = temps.Execute(w, JEntries)
+		err = tmpl.Execute(w, JEntries)
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		/*
+			///////////////////////////////////////////////
+			Inputting new entries
+			///////////////////////////////////////////////
+		*/
+		journalDate = r.FormValue("date")
+
+		journalEntry = r.FormValue("entry")
+
+		if journalEntry != "" {
+			rows, err = database.Query(`SELECT * FROM journal_entries WHERE date = ?`, journalDate)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer rows.Close()
+
+			dateExists := false
+
+			for rows.Next() {
+				err := rows.Scan(&dbid, &dbdate, &dbentry)
+				if err != nil {
+					log.Fatal(err)
+				}
+				if journalDate == dbdate {
+					dateExists = true
+				}
+			}
+
+			// If the date of the entry already exists, the entry will be added	to
+			// the preexisting entry after a new line.
+			if dateExists {
+				rows, err = database.Query("SELECT * FROM journal_entries WHERE date = ?", journalDate)
+				if err != nil {
+					log.Fatal(err)
+				}
+				for rows.Next() {
+					err := rows.Scan(&dbid, &dbdate, &dbentry)
+					if err != nil {
+						log.Fatal(err)
+					}
+					journalEntry = fmt.Sprint(dbentry + "\n\n" + journalEntry)
+				}
+
+				statement, err := database.Prepare("UPDATE journal_entries SET entry = ? WHERE date = ?")
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer statement.Close()
+				statement.Exec(journalEntry, journalDate)
+
+			} else {
+				statement, err := database.Prepare("INSERT INTO journal_entries (date, entry) VALUES (?, ?)")
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer statement.Close()
+				statement.Exec(journalDate, journalEntry)
+			}
 		}
 	})
 
@@ -102,4 +173,16 @@ func main() {
 	// 	fmt.Println(entry.Date, entry.Entry)
 	// 	fmt.Println()
 	// }
+}
+
+// Checks to see if the inputted date is in the correct format
+func checkDateFormat(date string) string {
+	matched, err := regexp.MatchString(`((19|20)[0-9][0-9])[- /.](0[1-9]|1[012])[- /.]([012][0-9]|3[01])`, journalDate)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if matched == false {
+		journalDate = string(time.Now().Format("2006-01-02"))
+	}
+	return journalDate
 }
