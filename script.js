@@ -1,36 +1,7 @@
-const openModalButtons = document.querySelectorAll("[data-modal-target]")
-const closeModalButtons = document.querySelectorAll("[data-close-button]")
-const overlay = document.getElementById("overlay")
+$("form").on('submit', function(e) {
+    e.preventDefault();
+      
+    $(".description").val($(".description").val().replace(/\r\n|\r|\n/g,"<br />"));
+  });
 
-openModalButtons.forEach(button => {
-    button.addEventListener("click", () => {
-        const modal = document.querySelector(button.dataset.modalTarget)
-        openModalButtons(modal)
-    })
-})
-
-overlay.addEventListener("click", () => {
-    const modals = document.querySelectorAll(".edit-modal.active")
-    modals.forEach(modal => {
-        closeModal(modal)
-    })
-})
-
-closeModalButtons.forEach(button => {
-    button.addEventListener("click", () => {
-        const modal = button.closest(".edit-modal")
-        closeModalButtons(modal)
-    })
-})
-
-function openModal(modal) {
-    if (modal == null) return
-    modal.classList.add("active")
-    overlay.classList.add("active")
-}
-
-function closeModal(modal) {
-    if (modal == null) return
-    modal.classList.remove("active")
-    overlay.classList.remove("active")
-}
+document.getElementById("edit-entry-date").style.display = "none";

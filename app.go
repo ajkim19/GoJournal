@@ -77,6 +77,9 @@ func init() {
 }
 
 func main() {
+	fs := http.FileServer(http.Dir("./"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
 	tmpl, err = template.ParseFiles("index.html")
 	if err != nil {
 		log.Fatal(err)
@@ -106,14 +109,23 @@ func main() {
 
 		/*
 			///////////////////////////////////////////////
-			Inputting new entries
+			Inputting entries
 			///////////////////////////////////////////////
 		*/
-		journalDate = r.FormValue("date")
+		// Editing an existing entry
+		if r.FormValue("edit-entry") != "" {
+			journalDate = r.FormValue("edit-entry-date")
+			journalEntry = r.FormValue("edit-entry")
 
-		journalEntry = r.FormValue("entry")
+			//fmt.Println(journalEntry)
 
-		if journalEntry != "" {
+			updateEntry(database, journalDate, journalEntry)
+
+			// Adding an entry
+		} else if r.FormValue("entry") != "" {
+			journalDate = r.FormValue("date")
+			journalEntry = r.FormValue("entry")
+
 			rows, err = database.Query(`SELECT * FROM journal_entries WHERE date = ?`, journalDate)
 			if err != nil {
 				log.Fatal(err)
@@ -147,12 +159,7 @@ func main() {
 					journalEntry = fmt.Sprint(dbentry + "\n\n" + journalEntry)
 				}
 
-				statement, err := database.Prepare("UPDATE journal_entries SET entry = ? WHERE date = ?")
-				if err != nil {
-					log.Fatal(err)
-				}
-				defer statement.Close()
-				statement.Exec(journalEntry, journalDate)
+				updateEntry(database, journalDate, journalEntry)
 
 			} else {
 				statement, err := database.Prepare("INSERT INTO journal_entries (date, entry) VALUES (?, ?)")
@@ -169,13 +176,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// for _, entry := range JEntries {
-	// 	fmt.Println(entry.Date, entry.Entry)
-	// 	fmt.Println()
-	// }
 }
 
-// Checks to see if the inputted date is in the correct format
+// checkDateFormat checks to see if the inputted date is in the correct format
 func checkDateFormat(date string) string {
 	matched, err := regexp.MatchString(`((19|20)[0-9][0-9])[- /.](0[1-9]|1[012])[- /.]([012][0-9]|3[01])`, journalDate)
 	if err != nil {
@@ -185,4 +188,14 @@ func checkDateFormat(date string) string {
 		journalDate = string(time.Now().Format("2006-01-02"))
 	}
 	return journalDate
+}
+
+// updateEntry edits an entry in the journal database
+func updateEntry(db *sql.DB, jd string, je string) {
+	statement, err := db.Prepare("UPDATE journal_entries SET entry = ? WHERE date = ?")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer statement.Close()
+	statement.Exec(je, jd)
 }
