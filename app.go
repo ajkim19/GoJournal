@@ -6,9 +6,8 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"regexp"
-	"time"
 
+	"github.com/ajkim19/JournalApp/pkg/journal"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -110,19 +109,19 @@ func main() {
 		// Deletes and existing entry
 		if r.FormValue("delete-entry") == "yes" {
 			journalDate = r.FormValue("delete-entry-date")
-			deleteEntry(database, journalDate)
+			journal.DeleteEntry(database, journalDate)
 
 			// Editing an existing entry
 		} else if r.FormValue("edit-entry") != "" {
 			journalDate = r.FormValue("edit-entry-date")
 			journalEntry = r.FormValue("edit-entry")
-			editEntry(database, journalDate, journalEntry)
+			journal.EditEntry(database, journalDate, journalEntry)
 
 			// Adding an entry
 		} else if r.FormValue("entry") != "" {
 			journalDate = r.FormValue("date")
 			journalEntry = r.FormValue("entry")
-			addEntry(database, journalDate, journalEntry)
+			journal.AddEntry(database, journalDate, journalEntry)
 		}
 	})
 
@@ -130,83 +129,4 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-// checkDateFormat checks to see if the inputted date is in the correct format
-func checkDateFormat(date string) string {
-	matched, err := regexp.MatchString(`((19|20)[0-9][0-9])[- /.](0[1-9]|1[012])[- /.]([012][0-9]|3[01])`, journalDate)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if matched == false {
-		journalDate = string(time.Now().Format("2006-01-02"))
-	}
-	return journalDate
-}
-
-// addEntry adds an entry to the journal database
-func addEntry(db *sql.DB, jd string, je string) {
-	rows, err := database.Query(`SELECT * FROM journal_entries WHERE date = ?`, journalDate)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	dateExists := false
-
-	for rows.Next() {
-		err := rows.Scan(&dbid, &dbdate, &dbentry)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if journalDate == dbdate {
-			dateExists = true
-		}
-	}
-
-	// If the date of the entry already exists, the entry will be added	to
-	// the preexisting entry after a new line.
-	if dateExists {
-		rows, err = database.Query("SELECT * FROM journal_entries WHERE date = ?", journalDate)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for rows.Next() {
-			err := rows.Scan(&dbid, &dbdate, &dbentry)
-			if err != nil {
-				log.Fatal(err)
-			}
-			journalEntry = fmt.Sprint(dbentry + "\n\n" + journalEntry)
-		}
-
-		editEntry(database, journalDate, journalEntry)
-
-	} else {
-		statement, err := database.Prepare("INSERT INTO journal_entries (date, entry) VALUES (?, ?)")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer statement.Close()
-		statement.Exec(journalDate, journalEntry)
-	}
-}
-
-// editEntry edits an entry in the journal database
-func editEntry(db *sql.DB, jd string, je string) {
-	statement, err := db.Prepare("UPDATE journal_entries SET entry = ? WHERE date = ?")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer statement.Close()
-	statement.Exec(je, jd)
-}
-
-// deleteEntry deletes an entry in the journal database
-func deleteEntry(db *sql.DB, jd string) {
-	statement, err := db.Prepare("DELETE FROM journal_entries WHERE date = ?")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer statement.Close()
-	statement.Exec(jd)
 }
