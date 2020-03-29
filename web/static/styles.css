@@ -2,6 +2,10 @@ h1 {
     text-align: center;
 }
 
+button {
+    margin: 2px;
+}
+
 #edit-entry {
     height: 200px;
 }

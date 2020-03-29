@@ -20,17 +20,17 @@ var dbdate string
 var dbentry string
 var rows *sql.Rows
 var username string = "journal"
-var JEntries []JEntry
+var jEntries []jEntry
 var journalDate string
 var journalEntry string
 
-type JEntry struct {
+type jEntry struct {
 	Date  string `json:"date"`
 	Entry string `json:"entry"`
 }
 
 func init() {
-	dataSourceName := fmt.Sprintf("%s.db", username)
+	dataSourceName := fmt.Sprintf("database/%s.db", username)
 
 	// Makes a handle for the database journal
 	database, err = sql.Open("sqlite3", dataSourceName)
@@ -77,10 +77,10 @@ func init() {
 }
 
 func main() {
-	fs := http.FileServer(http.Dir("./"))
+	fs := http.FileServer(http.Dir("./web/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	tmpl, err = template.ParseFiles("index.html")
+	tmpl, err = template.ParseFiles("web/index.html")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		JEntries = []JEntry{}
+		jEntries = []jEntry{}
 
 		rows, err = database.Query("SELECT * FROM journal_entries ORDER BY date DESC")
 		if err != nil {
@@ -99,76 +99,30 @@ func main() {
 		}
 		for rows.Next() {
 			rows.Scan(&dbid, &dbdate, &dbentry)
-			JEntries = append(JEntries, JEntry{Date: dbdate, Entry: dbentry})
+			jEntries = append(jEntries, jEntry{Date: dbdate, Entry: dbentry})
 		}
 
-		err = tmpl.Execute(w, JEntries)
+		err = tmpl.Execute(w, jEntries)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		/*
-			///////////////////////////////////////////////
-			Inputting entries
-			///////////////////////////////////////////////
-		*/
-		// Editing an existing entry
-		if r.FormValue("edit-entry") != "" {
+		// Deletes and existing entry
+		if r.FormValue("delete-entry") == "yes" {
+			journalDate = r.FormValue("delete-entry-date")
+			deleteEntry(database, journalDate)
+
+			// Editing an existing entry
+		} else if r.FormValue("edit-entry") != "" {
 			journalDate = r.FormValue("edit-entry-date")
 			journalEntry = r.FormValue("edit-entry")
-
-			//fmt.Println(journalEntry)
-
-			updateEntry(database, journalDate, journalEntry)
+			editEntry(database, journalDate, journalEntry)
 
 			// Adding an entry
 		} else if r.FormValue("entry") != "" {
 			journalDate = r.FormValue("date")
 			journalEntry = r.FormValue("entry")
-
-			rows, err = database.Query(`SELECT * FROM journal_entries WHERE date = ?`, journalDate)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer rows.Close()
-
-			dateExists := false
-
-			for rows.Next() {
-				err := rows.Scan(&dbid, &dbdate, &dbentry)
-				if err != nil {
-					log.Fatal(err)
-				}
-				if journalDate == dbdate {
-					dateExists = true
-				}
-			}
-
-			// If the date of the entry already exists, the entry will be added	to
-			// the preexisting entry after a new line.
-			if dateExists {
-				rows, err = database.Query("SELECT * FROM journal_entries WHERE date = ?", journalDate)
-				if err != nil {
-					log.Fatal(err)
-				}
-				for rows.Next() {
-					err := rows.Scan(&dbid, &dbdate, &dbentry)
-					if err != nil {
-						log.Fatal(err)
-					}
-					journalEntry = fmt.Sprint(dbentry + "\n\n" + journalEntry)
-				}
-
-				updateEntry(database, journalDate, journalEntry)
-
-			} else {
-				statement, err := database.Prepare("INSERT INTO journal_entries (date, entry) VALUES (?, ?)")
-				if err != nil {
-					log.Fatal(err)
-				}
-				defer statement.Close()
-				statement.Exec(journalDate, journalEntry)
-			}
+			addEntry(database, journalDate, journalEntry)
 		}
 	})
 
@@ -190,12 +144,69 @@ func checkDateFormat(date string) string {
 	return journalDate
 }
 
-// updateEntry edits an entry in the journal database
-func updateEntry(db *sql.DB, jd string, je string) {
+// addEntry adds an entry to the journal database
+func addEntry(db *sql.DB, jd string, je string) {
+	rows, err := database.Query(`SELECT * FROM journal_entries WHERE date = ?`, journalDate)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	dateExists := false
+
+	for rows.Next() {
+		err := rows.Scan(&dbid, &dbdate, &dbentry)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if journalDate == dbdate {
+			dateExists = true
+		}
+	}
+
+	// If the date of the entry already exists, the entry will be added	to
+	// the preexisting entry after a new line.
+	if dateExists {
+		rows, err = database.Query("SELECT * FROM journal_entries WHERE date = ?", journalDate)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for rows.Next() {
+			err := rows.Scan(&dbid, &dbdate, &dbentry)
+			if err != nil {
+				log.Fatal(err)
+			}
+			journalEntry = fmt.Sprint(dbentry + "\n\n" + journalEntry)
+		}
+
+		editEntry(database, journalDate, journalEntry)
+
+	} else {
+		statement, err := database.Prepare("INSERT INTO journal_entries (date, entry) VALUES (?, ?)")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer statement.Close()
+		statement.Exec(journalDate, journalEntry)
+	}
+}
+
+// editEntry edits an entry in the journal database
+func editEntry(db *sql.DB, jd string, je string) {
 	statement, err := db.Prepare("UPDATE journal_entries SET entry = ? WHERE date = ?")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer statement.Close()
 	statement.Exec(je, jd)
+}
+
+// deleteEntry deletes an entry in the journal database
+func deleteEntry(db *sql.DB, jd string) {
+	statement, err := db.Prepare("DELETE FROM journal_entries WHERE date = ?")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer statement.Close()
+	statement.Exec(jd)
 }
