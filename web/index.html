@@ -11,8 +11,8 @@
 	<link rel="stylesheet" type="text/css" href="static/styles.css">
 	<script defer src="static/script.js"></script>
 </head>
-<body>
-	<div class="container">
+<body class="bg-dark">
+	<div class="container bg-white">
 		<div class="row justify-content-center">
 			<div class="col-6">
                 <h1>Journal App</h1>
@@ -26,73 +26,77 @@
 			<div class="col-10">
 				<!-- Input new journal entry -->
 				<form action="/" method="POST">
-					<input class="form-control" type="text" name="date" placeholder="YYYY-MM-DD"/>
-					<textarea class="form-control" rows="8" type="text" name="entry" placeholder="Type your journal entry"></textarea>
+					<input class="form-control" id="new-entry" type="text" name="date" placeholder="YYYY-MM-DD"/>
+					<textarea class="form-control" id="new-entry" rows="8" type="text" name="entry" placeholder="Type your journal entry"></textarea>
 					<button type="submit" class="btn btn-dark">Add Entry</button>
 				</form>
+
 				<!-- Shows existing journal entries -->
 				<div id="entriesList">
 					{{range .}}
-						<br>
-						<h4>{{.Date}}</h4>
-						<p>{{.Entry}}</p>
-						
-						<!-- Delete button trigger modal -->
-						<button type="button" class="btn btn-dark" data-toggle="modal" data-target="#deleteModalLong"  style="float: right;">
-						Delete
-						</button>
+						<div class="border border-dark rounded">
+							<br>
+							<h4>{{.Date}}</h4>
+							<p>{{.Entry}}</p>
+							
+							<!-- Delete button trigger modal -->
+							<button type="button" id="modal-button" class="btn btn-dark" data-toggle="modal" data-target="#deleteModalLong"  style="float: right;">
+							Delete
+							</button>
 
-						<!-- Delete Modal -->
-						<div class="modal fade" id="deleteModalLong" tabindex="-1" role="dialog" aria-labelledby="deleteModalLongTitle" aria-hidden="true" style="float: right">
-							<div class="modal-dialog" role="document">
-								<div class="modal-content">
-									<form action="/" method="POST">
-										<div class="modal-header">
-											<h5 class="modal-title" id="deleteModalLongTitle">{{.Date}}</h5>
-											<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-												<span aria-hidden="true">&times;</span>
-											</button>
-										</div>
-										<div class="modal-body">
-											<textarea id="delete-entry-date" name="delete-entry-date">{{.Date}}</textarea>
-											<p>Are you sure you want to delete entry for {{.Date}}?</p>
-											<input class="form-control" id="delete-entry" name="delete-entry" placeholder='Type "yes" to confirm' row="8" />
-										</div>
-										<div class="modal-footer">
-											<button type="button submit" class="btn btn-dark">Delete Entry</button>
-										</div>
-									</form>
+							<!-- Delete Modal -->
+							<div class="modal fade" id="deleteModalLong" tabindex="-1" role="dialog" aria-labelledby="deleteModalLongTitle" aria-hidden="true" style="float: right">
+								<div class="modal-dialog" role="document">
+									<div class="modal-content">
+										<form action="/" method="POST">
+											<div class="modal-header">
+												<h5 class="modal-title" id="deleteModalLongTitle">{{.Date}}</h5>
+												<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+													<span aria-hidden="true">&times;</span>
+												</button>
+											</div>
+											<div class="modal-body">
+												<textarea id="delete-entry-date" name="delete-entry-date">{{.Date}}</textarea>
+												<p>Are you sure you want to delete entry for {{.Date}}?</p>
+												<input class="form-control" id="delete-entry" name="delete-entry" placeholder='Type "yes" to confirm' row="8" />
+											</div>
+											<div class="modal-footer">
+												<button type="button submit" class="btn btn-dark">Delete Entry</button>
+											</div>
+										</form>
+									</div>
 								</div>
 							</div>
-						</div>
 
-						<!-- Edit button trigger modal -->
-						<button type="button" class="btn btn-dark" data-toggle="modal" data-target="#editModalLong" style="float: right;">
-						Edit {{.Date}}
-						</button>
+							<!-- Edit button trigger modal -->
+							<button type="button" id="modal-button" class="btn btn-dark" data-toggle="modal" data-target="#editModalLong" style="float: right;">
+							Edit {{.Date}}
+							</button>
 
-						<!-- Edit Modal -->
-						<div class="modal fade" id="editModalLong" tabindex="-1" role="dialog" aria-labelledby="editModalLongTitle" aria-hidden="true" style="float: right">
-							<div class="modal-dialog" role="document">
-								<div class="modal-content">
-									<form action="/" method="POST">
-										<div class="modal-header">
-											<h5 class="modal-title" id="editModalLongTitle">{{.Date}}</h5>
-											<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-												<span aria-hidden="true">&times;</span>
-											</button>
-										</div>
-										<div class="modal-body">
-											<textarea id="edit-entry-date" name="edit-entry-date">{{.Date}}</textarea>
-											<p>{{.Entry}}</p>
-											<textarea class="form-control" id="edit-entry" name="edit-entry" row="8"></textarea>
-										</div>
-										<div class="modal-footer">
-											<button type="button submit" class="btn btn-dark">Save changes</button>
-										</div>
-									</form>
+							<!-- Edit Modal -->
+							<div class="modal fade" id="editModalLong" tabindex="-1" role="dialog" aria-labelledby="editModalLongTitle" aria-hidden="true" style="float: right">
+								<div class="modal-dialog" role="document">
+									<div class="modal-content">
+										<form action="/" method="POST">
+											<div class="modal-header">
+												<h5 class="modal-title" id="editModalLongTitle">{{.Date}}</h5>
+												<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+													<span aria-hidden="true">&times;</span>
+												</button>
+											</div>
+											<div class="modal-body">
+												<textarea id="edit-entry-date" name="edit-entry-date">{{.Date}}</textarea>
+												<p>{{.Entry}}</p>
+												<textarea class="form-control" id="edit-entry" name="edit-entry" row="8"></textarea>
+											</div>
+											<div class="modal-footer">
+												<button type="button submit" class="btn btn-dark">Save changes</button>
+											</div>
+										</form>
+									</div>
 								</div>
 							</div>
+							<br>
 						</div>
 					{{end}}
 				</div>

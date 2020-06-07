@@ -1,9 +1,24 @@
 h1 {
     text-align: center;
+    font-weight: bold;
+    padding: 20px;
 }
 
-button {
+button#modal-button {
     margin: 2px;
+    position: relative;
+    top: -15px;
+}
+
+.border{
+    padding: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+#new-entry {
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 #edit-entry {

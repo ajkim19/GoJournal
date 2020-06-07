@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: journalapp-deployment
+  labels:
+    app: journalapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: journalapp
+  template:
+    metadata:
+      labels:
+        app: journalapp
+    spec:
+      containers:
+      - name: journalapp
+        image: ajkim19/journalapp
+        ports:
+        - containerPort: 8080

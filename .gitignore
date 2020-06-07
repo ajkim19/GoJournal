@@ -1,2 +1,12 @@
 ec2.tf
 jquery-3.4.1.js
+database/*.db
+access_key
+secret_key
+Temp.pem
+terraform.tfstate
+terraform.tfstate.backup
+Temp.pem
+.terraform.tfstate.lock.info
+terraform
+.terraform
